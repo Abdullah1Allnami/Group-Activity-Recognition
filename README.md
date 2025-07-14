@@ -1,38 +1,79 @@
-# Volleyball Deep Learning Project
+# Group Activity Recognition in Volleyball Videos
 
-This project focuses on building a deep learning pipeline for image analysis in volleyball gameplay scenarios. The system processes annotated images, applies data augmentation, and trains a baseline model to classify and predict activities.
+This repository implements the deep learning pipeline for group activity recognition in volleyball, following the methodology proposed in Dr. Mostafa Saad Ibrahim's paper:
 
-## Table of Contents
-- [Features](#features)
-- [Setup](#setup)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [Acknowledgments](#acknowledgments)
+> **Paper Reference:**  
+> Mostafa Saad Ibrahim, et al. "Hierarchical Deep Temporal Models for Group Activity Recognition."  
+> [Link to Paper](https://arxiv.org/abs/1707.02786)
 
----
+## Overview
+
+The project aims to classify group activities in volleyball matches using annotated video frames. It leverages hierarchical deep learning models to process both global scene context and individual player actions, closely following the architecture and training strategies described in the referenced paper.
 
 ## Features
 
-- **Data Parsing and Visualization**:
-  - Parses annotation files to extract bounding boxes and activity labels.
-  - Visualizes images with annotated bounding boxes.
+- **Data Parsing & Preprocessing:**  
+  - Loads and parses volleyball dataset annotations.
+  - Extracts bounding boxes and player actions.
+  - Preprocesses images and player crops.
 
-- **Data Augmentation**:
-  - Includes random transformations such as rotations, color jittering, and resizing.
+- **Data Augmentation:**  
+  - Applies random transformations (rotation, color jitter, resizing) for robust training.
 
-- **Model Training**:
-  - Implements a baseline ResNet-50 model for activity classification.
-  - Supports transfer learning by freezing ResNet-50 layers except for the final layer.
+- **Hierarchical Model Architecture:**  
+  - Implements a baseline model inspired by the paper, using ResNet backbone and temporal modeling.
+  - Supports transfer learning and fine-tuning.
 
-- **Exploratory Data Analysis (EDA)**:
-  - Visualizes label distributions and image properties (e.g., dimensions, formats).
+- **Training & Evaluation:**  
+  - Early stopping, validation, and test accuracy reporting.
+  - Model checkpointing.
 
----
+- **Exploratory Data Analysis (EDA):**  
+  - Visualizes activity and player action distributions.
 
 ## Setup
 
-### Required Libraries
-Install the required Python libraries:
+### Requirements
+
+Install dependencies:
 
 ```bash
 pip install torch torchvision numpy scikit-learn matplotlib seaborn pillow opencv-python
+```
+
+### Dataset
+
+- Download and organize the volleyball dataset as described in the paper.
+- Place data in the `data/` directory, following the expected structure.
+
+## Usage
+
+1. **Train the Model:**
+
+   ```bash
+   python main.py
+   ```
+
+2. **Evaluate/Test:**
+
+   - Results and metrics will be printed after training.
+
+## Project Structure
+
+- `main.py` — Entry point for training and evaluation.
+- `dataset.py` — Data loading and preprocessing.
+- `models.py` — Model architecture.
+- `train.py` — Training loop and early stopping.
+- `evaluation.py` — Testing and metrics.
+- `EDA.py` — Exploratory data analysis utilities.
+- `utils.py` — Helper functions.
+- `requirements.txt` — Python dependencies.
+
+## Acknowledgments
+
+- This implementation is based on Dr. Mostafa Saad Ibrahim's research.
+- Thanks to the original authors for their dataset and methodology.
+
+---
+
+For questions or contributions, please open an issue or pull request.
