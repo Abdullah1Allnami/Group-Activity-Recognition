@@ -1,37 +1,54 @@
 # Group Activity Recognition in Volleyball Videos
 
-This repository implements the deep learning pipeline for group activity recognition in volleyball, following the methodology proposed in Dr. Mostafa Saad Ibrahim's paper:
+This repository implements a deep learning pipeline for **group activity recognition in volleyball**, based on the methodology proposed in the following paper:
 
-> **Paper Reference:**  
-> Mostafa Saad Ibrahim, et al. "Hierarchical Deep Temporal Models for Group Activity Recognition."  
-> [Link to Paper]([https://arxiv.org/abs/1707.02786](https://www.cs.sfu.ca/~mori/research/papers/ibrahim-cvpr16.pdf])
+> **Paper Reference**
+> Mostafa S. Ibrahim, Srikanth Muralidharan, Zhiwei Deng, Arash Vahdat, and Greg Mori.
+> **"Hierarchical Deep Temporal Models for Group Activity Recognition"**
+> *CVPR 2016*
+> [https://www.cs.sfu.ca/\~mori/research/papers/ibrahim-cvpr16.pdf](https://www.cs.sfu.ca/~mori/research/papers/ibrahim-cvpr16.pdf)
 
-## Overview
+---
 
-The project aims to classify group activities in volleyball matches using annotated video frames. It leverages hierarchical deep learning models to process both global scene context and individual player actions, closely following the architecture and training strategies described in the referenced paper.
+## 📌 Overview
 
-## Features
+The project classifies **group activities** in volleyball matches using annotated video frames. It leverages **hierarchical deep learning models** to process both global scene context and individual player actions, as described in the referenced paper.
 
-- **Data Parsing & Preprocessing:**  
-  - Loads and parses volleyball dataset annotations.
-  - Extracts bounding boxes and player actions.
-  - Preprocesses images and player crops.
+---
 
-- **Data Augmentation:**  
-  - Applies random transformations (rotation, color jitter, resizing) for robust training.
+## ✨ Features
 
-- **Hierarchical Model Architecture:**  
-  - Implements a baseline model inspired by the paper, using ResNet backbone and temporal modeling.
-  - Supports transfer learning and fine-tuning.
+### 🔄 Data Parsing & Preprocessing
 
-- **Training & Evaluation:**  
-  - Early stopping, validation, and test accuracy reporting.
-  - Model checkpointing.
+* Loads volleyball dataset annotations.
+* Extracts bounding boxes and individual player actions.
+* Preprocesses image frames and player crops.
 
-- **Exploratory Data Analysis (EDA):**  
-  - Visualizes activity and player action distributions.
+### 🧪 Data Augmentation
 
-## Setup
+* Random transformations: rotation, color jitter, resizing, etc.
+
+### 🧠 Hierarchical Model Architecture
+
+* Implements a model inspired by the paper with:
+
+  * **ResNet** backbone.
+  * **Temporal modeling** across player and scene representations.
+* Supports transfer learning and fine-tuning.
+
+### 🏋️ Training & Evaluation
+
+* Training with early stopping and validation monitoring.
+* Test-time evaluation and metrics reporting.
+* Model checkpoint saving.
+
+### 📊 Exploratory Data Analysis (EDA)
+
+* Visualization of group activity and individual action distributions.
+
+---
+
+## ⚙️ Setup
 
 ### Requirements
 
@@ -43,37 +60,49 @@ pip install torch torchvision numpy scikit-learn matplotlib seaborn pillow openc
 
 ### Dataset
 
-- Download and organize the volleyball dataset as described in the paper.
-- Place data in the `data/` directory, following the expected structure.
+* Download and structure the **volleyball dataset** as described in the original paper.
+* Place it in the `data/` directory with the expected structure:
 
-## Usage
-
-1. **Train the Model:**
-
-   ```bash
-   python main.py
-   ```
-
-2. **Evaluate/Test:**
-
-   - Results and metrics will be printed after training.
-
-## Project Structure
-
-- `main.py` — Entry point for training and evaluation.
-- `dataset.py` — Data loading and preprocessing.
-- `models.py` — Model architecture.
-- `train.py` — Training loop and early stopping.
-- `evaluation.py` — Testing and metrics.
-- `EDA.py` — Exploratory data analysis utilities.
-- `utils.py` — Helper functions.
-- `requirements.txt` — Python dependencies.
-
-## Acknowledgments
-
-- This implementation is based on Dr. Mostafa Saad Ibrahim's research.
-- Thanks to the original authors for their dataset and methodology.
+  ```
+  data/
+  ├── frames/
+  └── annotations/
+  ```
 
 ---
 
-For questions or contributions, please open an issue or pull request.
+## 🚀 Usage
+
+### Train the Model
+
+```bash
+python main.py
+```
+
+### Evaluate / Test
+
+* After training, results and evaluation metrics will be printed to the console.
+
+---
+
+## 📁 Project Structure
+
+* `main.py` — Entry point for training and evaluation.
+* `dataset.py` — Data loading, annotation parsing, preprocessing.
+* `models.py` — Model architecture.
+* `train.py` — Training loop and logic.
+* `evaluation.py` — Testing and accuracy metrics.
+* `EDA.py` — Data visualization and analysis tools.
+* `utils.py` — Helper functions.
+* `requirements.txt` — Python dependencies.
+
+---
+
+## 🙏 Acknowledgments
+
+* This implementation is inspired by **Dr. Mostafa Saad Ibrahim** and collaborators’ work on group activity recognition.
+* Thanks to the original authors for their **dataset** and **methodology**.
+
+---
+
+For questions, suggestions, or contributions, please **open an issue or a pull request**.
