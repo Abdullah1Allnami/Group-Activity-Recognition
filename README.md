@@ -4,7 +4,7 @@ This repository implements the deep learning pipeline for group activity recogni
 
 > **Paper Reference:**  
 > Mostafa Saad Ibrahim, et al. "Hierarchical Deep Temporal Models for Group Activity Recognition."  
-> [Link to Paper]([https://arxiv.org/abs/1707.02786](https://www.cs.sfu.ca/~mori/research/papers/ibrahim-cvpr16.pdf))
+> [Link to Paper]([https://arxiv.org/abs/1707.02786](https://www.cs.sfu.ca/~mori/research/papers/ibrahim-cvpr16.pdf])
 
 ## Overview
 
