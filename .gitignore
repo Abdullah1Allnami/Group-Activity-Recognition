@@ -1,8 +1,6 @@
 data/*
-venv/*
 saved_models/*
 
 
 !data/
-!venv/
 !saved_models/
