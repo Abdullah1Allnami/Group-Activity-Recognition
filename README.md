@@ -13,7 +13,7 @@ This repository implements a deep learning pipeline for **group activity recogni
 ## 📌 Overview
 
 The project classifies **group activities** in volleyball matches using annotated video frames. It leverages **hierarchical deep learning models** to process both global scene context and individual player actions, as described in the referenced paper.
-
+<img src="https://github.com/Abdullah1Allnami/Group-Activity-Recognition/img/fig1.png" alt="Figure 1" height="400" >
 ---
 
 ## ✨ Features
