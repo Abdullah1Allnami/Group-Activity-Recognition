@@ -23,7 +23,7 @@ def train_base_line_1(
     print(f"Training on Device: {next(model.parameters()).device}")
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e2)
     scheduler = StepLR(optimizer, step_size=10, gamma=0.1)
 
     best_val_accuracy = 0
