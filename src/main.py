@@ -41,8 +41,8 @@ def main():
 
     # Hyperparameters
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    batch_size = 16
-    num_epochs = 10
+    batch_size = 32
+    num_epochs = 20
 
     # Data Loading
     data_root_dir = "/kaggle/input/volleyball/volleyball_/videos"

@@ -57,7 +57,7 @@ def train_base_line_1(
             ).to(device)
 
             optimizer.zero_grad()
-            outputs = model(frame, player_image, player_actions)
+            outputs = model(frame)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
@@ -91,7 +91,7 @@ def train_base_line_1(
                     device
                 )
 
-                outputs = model(frame, player_image, player_actions)
+                outputs = model(frame)
                 loss = criterion(outputs, labels)
 
                 val_loss += loss.item()
@@ -110,7 +110,7 @@ def train_base_line_1(
             best_val_accuracy = val_acc
             best_model_state = model.state_dict()
 
-    # Load the best model state
+    # Optionally: Load the best model state
     model.load_state_dict(best_model_state)
 
     return model

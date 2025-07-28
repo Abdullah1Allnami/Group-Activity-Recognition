@@ -24,7 +24,7 @@ def test_model(model, test_dl, device, activity2idx, action2idx):
                 [activity2idx[a.strip().lower()] for a in batch["activity"]]
             ).to(device)
 
-            outputs = model(frame, player_image, player_actions)
+            outputs = model(frame)
             loss = criterion(outputs, labels)
 
             total_loss += loss.item()
