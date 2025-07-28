@@ -110,7 +110,7 @@ def train_base_line_1(
             best_val_accuracy = val_acc
             best_model_state = model.state_dict()
 
-    # Optionally: Load the best model state
+    # Load the best model state
     model.load_state_dict(best_model_state)
 
     return model

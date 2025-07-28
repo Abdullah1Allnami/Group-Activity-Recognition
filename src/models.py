@@ -10,32 +10,43 @@ class ActivityModel(nn.Module):
 
         resnet = resnet101(weights=ResNet101_Weights.DEFAULT)
 
+        # Freeze all layers
         for param in resnet.parameters():
             param.requires_grad = False
 
-        self.backbone = nn.Sequential(*list(resnet.children())[:-2])  #
+        # Unfreeze only the last block for fine-tuning
+        for param in resnet.layer4.parameters():
+            param.requires_grad = True
+
+        self.backbone = nn.Sequential(*list(resnet.children())[:-2])
 
         self.conv_block = nn.Sequential(
             nn.Conv2d(2048, 512, kernel_size=3, stride=1, padding=1),
-            nn.GroupNorm(8, 512),
+            nn.BatchNorm2d(512),
             nn.ReLU(),
-            nn.Dropout2d(0.3),
+            nn.Dropout(0.4),
             nn.MaxPool2d(2),
             nn.Conv2d(512, 256, kernel_size=3, stride=1, padding=1),
-            nn.GroupNorm(8, 256),
+            nn.BatchNorm2d(256),
             nn.ReLU(),
-            nn.Dropout2d(0.3),
+            nn.Dropout(0.4),
             nn.MaxPool2d(2),
             nn.Conv2d(256, 128, kernel_size=3, stride=1, padding=1),
-            nn.GroupNorm(8, 128),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
-            nn.Dropout2d(0.2),
+            nn.Dropout(0.3),
             nn.AdaptiveAvgPool2d((1, 1)),
         )
 
-        self.classifier = nn.Sequential(nn.Flatten(), nn.Linear(128, num_classes))
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(64, num_classes),
+        )
 
-    def forward(self, frame, player_img, player_action):
+    def forward(self, frame):
         x = self.backbone(frame)
         x = self.conv_block(x)
         x = self.classifier(x)

@@ -50,14 +50,7 @@ def main():
 
     # Model Training BaseLine1
     model = train_base_line_1(
-        train_dl,
-        val_dl,
-        num_epochs,
-        device,
-        activity2idx,
-        action2idx,
-        start_with_pretrain=False,
-        weights_path="/kaggle/input/wieghts-activity-model/activity_model.pth",
+        train_dl, val_dl, num_epochs, device, activity2idx, action2idx
     )
     torch.save(model.state_dict(), "activity_model.pth")
     test_model(model, test_dl, device, action2idx, action2idx)
