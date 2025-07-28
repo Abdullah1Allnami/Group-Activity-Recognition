@@ -13,7 +13,6 @@ def base_line_1(
     device,
     activity2idx,
     action2idx,
-    patience=5,
     start_with_pretrain=False,
     weights_path="",
 ):
@@ -29,7 +28,6 @@ def base_line_1(
 
     best_val_accuracy = 0
     best_model_state = None
-    epochs_no_improve = 0
 
     if start_with_pretrain:
         print(f"Loading Trianed Weights from {weights_path}")
@@ -108,18 +106,9 @@ def base_line_1(
             f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}"
         )
 
-        # -------- Early Stopping Logic --------
         if val_acc > best_val_accuracy:
             best_val_accuracy = val_acc
-            epochs_no_improve = 0
             best_model_state = model.state_dict()
-        else:
-            epochs_no_improve += 1
-            if epochs_no_improve >= patience:
-                print(
-                    f"Early stopping at epoch {epoch+1}. Best Val Loss: {best_val_loss:.4f}"
-                )
-                break
 
     # Optionally: Load the best model state
     model.load_state_dict(best_model_state)
