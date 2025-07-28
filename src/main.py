@@ -1,5 +1,5 @@
 from dataset import get_data_loaders
-from train import base_line_1
+from train import train_base_line_1
 import torch
 from evaluation import test_model
 
@@ -49,7 +49,7 @@ def main():
     train_dl, val_dl, test_dl = get_data_loaders(data_root_dir, batch_size)
 
     # Model Training BaseLine1
-    model = base_line_1(
+    model = train_base_line_1(
         train_dl,
         val_dl,
         num_epochs,

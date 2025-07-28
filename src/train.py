@@ -6,7 +6,7 @@ from models import ActivityModel
 import torch.nn.functional as F
 
 
-def base_line_1(
+def train_base_line_1(
     train_dl,
     val_dl,
     num_epochs,
