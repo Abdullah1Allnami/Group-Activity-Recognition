@@ -159,6 +159,18 @@ def baseline_1():
     print(f"\nFinal model saved to {final_model_path}")
     print("Training completed successfully!")
 
+    # Evaluate the best model checkpoint on the test set
+    if os.path.exists(best_model_path):
+        print(f"\nEvaluating the best model on the test set...")
+        try:
+            model.load_state_dict(torch.load(best_model_path, map_location=device))
+            test_metrics = val_epoch(model, test_loader, criterion_group, device)
+            print("\n--- Test Evaluation Results ---")
+            print(f"Test Loss: {test_metrics['loss']:.4f} | Test Acc: {test_metrics['acc']*100:.2f}% | Test F1: {test_metrics['f1']:.4f}")
+        except Exception as e:
+            print(f"Error during test evaluation: {e}")
+
+
 
 if __name__ == '__main__':
     baseline_1()
