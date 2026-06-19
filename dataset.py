@@ -8,10 +8,12 @@ from config import GROUP_ACTIVITIES, PLAYER_ACTIONS, group_to_idx, action_to_idx
 
 
 class VolleyBallDataset(Dataset):
-    def __init__(self, split='train', transform=None, data_path='./volleyball/volleyball_/videos'):
+    def __init__(self, split='train', transform=None, data_path='./volleyball/volleyball_/videos', seq_len=None, stride=3):
         self.data_path = data_path
         self.split = split
         self.transform = transform
+        self.seq_len = seq_len
+        self.stride = stride
         
         # Define video splits
         self.train_videos = {1, 3, 6, 7, 10, 13, 15, 16, 18, 22, 23, 31, 32, 36, 38, 39, 40, 41, 42, 48, 50, 52, 53, 54}
@@ -22,79 +24,47 @@ class VolleyBallDataset(Dataset):
         self.load_data()
 
     def load_data(self):
-        # Fallback to mock data if path doesn't exist
         if not os.path.exists(self.data_path):
-            print(f"[Dataset Split: {self.split}] WARNING: Data path '{self.data_path}' not found.")
-            print(f"-> Generating synthetic mock dataset for local verification/dry-run.")
-            self.is_mock = True
+            raise FileNotFoundError(f"Data path '{self.data_path}' not found.")
             
-            # Generate dummy video annotations
-            num_mock_samples = 16 if self.split == 'train' else 8
-            for idx in range(num_mock_samples):
-                # Construct 12 players per frame
-                parsed_players = []
-                for p_idx in range(12):
-                    # Distribute player boxes across court sides
-                    x = 120 + p_idx * 85 if p_idx < 6 else 180 + (p_idx - 6) * 85
-                    y = 200 + (p_idx % 3) * 120
-                    w = 55
-                    h = 110
-                    # Add labels
-                    action_str = PLAYER_ACTIONS[p_idx % len(PLAYER_ACTIONS)]
-                    parsed_players.append({
-                        'x': x,
-                        'y': y,
-                        'w': w,
-                        'h': h,
-                        'action': action_str
-                    })
+        for video_folder in os.listdir(self.data_path): # for each video folder
+            if not video_folder.isdigit():
+                continue
+            video_id = int(video_folder)
+            
+            # Filter by split
+            if self.split == 'train' and video_id not in self.train_videos:
+                continue
+            elif self.split == 'val' and video_id not in self.val_videos:
+                continue
+            elif self.split == 'test' and video_id not in self.test_videos:
+                continue
                 
-                groupLabel = GROUP_ACTIVITIES[idx % len(GROUP_ACTIVITIES)]
+            video_path = os.path.join(self.data_path, video_folder)
+            if not os.path.isdir(video_path):
+                continue
+            annotation_file = os.path.join(video_path, 'annotations.txt')
+            if not os.path.exists(annotation_file):
+                continue
+
+            for row in open(annotation_file, 'r'):
+                frame_folder, groupLabel, *playersAnnotations = row.strip().split(' ')
+                frame_name = frame_folder.split('.')[0]
+                image_frame  = os.path.join(video_path, frame_name, frame_name + '.jpg')
+                
+                parsed_players = [{
+                    'x': int(playersAnnotations[i]),
+                    'y': int(playersAnnotations[i+1]),
+                    'w': int(playersAnnotations[i+2]),
+                    'h': int(playersAnnotations[i+3]),
+                    'action': playersAnnotations[i+4]
+                } for i in range(0, len(playersAnnotations), 5)]
+                
                 annotation = {
                     'groupLabel': groupLabel,
                     'playersAnnotations': parsed_players
                 }
-                self.data.append((f"mock_frame_{idx}.jpg", annotation))
-        else:
-            self.is_mock = False
-            for video_folder in os.listdir(self.data_path): # for each video folder
-                if not video_folder.isdigit():
-                    continue
-                video_id = int(video_folder)
-                
-                # Filter by split
-                if self.split == 'train' and video_id not in self.train_videos:
-                    continue
-                elif self.split == 'val' and video_id not in self.val_videos:
-                    continue
-                elif self.split == 'test' and video_id not in self.test_videos:
-                    continue
-                    
-                video_path = os.path.join(self.data_path, video_folder)
-                if not os.path.isdir(video_path):
-                    continue
-                annotation_file = os.path.join(video_path, 'annotations.txt')
-                if not os.path.exists(annotation_file):
-                    continue
-
-                for row in open(annotation_file, 'r'):
-                    frame_folder, groupLabel, *playersAnnotations = row.strip().split(' ')
-                    frame_name = frame_folder.split('.')[0]
-                    image_frame  = os.path.join(video_path, frame_name, frame_name + '.jpg')
-                    
-                    parsed_players = [{
-                        'x': int(playersAnnotations[i]),
-                        'y': int(playersAnnotations[i+1]),
-                        'w': int(playersAnnotations[i+2]),
-                        'h': int(playersAnnotations[i+3]),
-                        'action': playersAnnotations[i+4]
-                    } for i in range(0, len(playersAnnotations), 5)]
-                    
-                    annotation = {
-                        'groupLabel': groupLabel,
-                        'playersAnnotations': parsed_players
-                    }
-                    self.data.append((image_frame, annotation))
+                self.data.append((image_frame, annotation))
 
     def __len__(self):
         return len(self.data)
@@ -102,67 +72,136 @@ class VolleyBallDataset(Dataset):
     def __getitem__(self, idx):
         image_frame, annotation = self.data[idx]
         
-        # Load or generate image
-        if hasattr(self, 'is_mock') and self.is_mock:
-            # Create a stylized volleyball court image
-            image = np.zeros((720, 1280, 3), dtype=np.uint8)
-            image[:, :, 0] = 34  # Dark cyan green theme
-            image[:, :, 1] = 139
-            image[:, :, 2] = 34
-            # Draw boundary court lines
-            cv2.rectangle(image, (100, 50), (1180, 670), (255, 255, 255), 4)
-            # Net line
-            cv2.line(image, (640, 50), (640, 670), (200, 200, 200), 6)
+        # Sequence mode
+        if self.seq_len is not None and self.seq_len > 1:
+            # We are reading from disk
+            frame_dir = os.path.dirname(image_frame)
+            frame_name = os.path.basename(image_frame).split('.')[0]
             
-            # Render mock players directly onto the image
-            for p in annotation['playersAnnotations']:
-                cv2.rectangle(image, (p['x'], p['y']), (p['x'] + p['w'], p['y'] + p['h']), (0, 0, 255), 3)
+            # List all frames inside the directory and sort them chronologically
+            all_frames = sorted([f for f in os.listdir(frame_dir) if f.endswith('.jpg') or f.endswith('.png')])
+            
+            # Find the annotated frame index in the list of frames
+            target_file = os.path.basename(image_frame)
+            if target_file in all_frames:
+                mid_idx = all_frames.index(target_file)
+            else:
+                mid_idx = len(all_frames) // 2
+                
+            # Sample seq_len frames centered around mid_idx
+            half_len = self.seq_len // 2
+            offsets = [i * self.stride for i in range(-half_len, half_len + 1)]
+            
+            images = []
+            for offset in offsets:
+                sample_idx = mid_idx + offset
+                # Clamp to index boundaries [0, len(all_frames) - 1]
+                sample_idx = max(0, min(sample_idx, len(all_frames) - 1))
+                frame_path = os.path.join(frame_dir, all_frames[sample_idx])
+                
+                image = cv2.imread(frame_path)
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                images.append(image)
+
+            # Scale annotations based on the first frame's original size
+            h_orig, w_orig = images[0].shape[:2]
+            target_h, target_w = 720, 1280
+            
+            scale_x = target_w / w_orig
+            scale_y = target_h / h_orig
+            
+            scaled_players = []
+            for player in annotation['playersAnnotations']:
+                x = int(player['x'] * scale_x)
+                y = int(player['y'] * scale_y)
+                w = int(player['w'] * scale_x)
+                h = int(player['h'] * scale_y)
+                
+                action_str = player['action']
+                action_idx = action_to_idx.get(action_str.lower(), 0) if not str(action_str).isdigit() else int(action_str)
+                
+                scaled_players.append({
+                    'x': x,
+                    'y': y,
+                    'w': w,
+                    'h': h,
+                    'action': action_str,
+                    'action_idx': action_idx
+                })
+                
+            group_str = annotation['groupLabel']
+            group_idx = group_to_idx.get(group_str.lower(), 0) if not str(group_str).isdigit() else int(group_str)
+            
+            scaled_annotation = {
+                'groupLabel': group_str,
+                'groupLabel_idx': group_idx,
+                'playersAnnotations': scaled_players
+            }
+            
+            # Apply transformation to each frame
+            processed_images = []
+            for img in images:
+                if h_orig != target_h or w_orig != target_w:
+                    img = cv2.resize(img, (target_w, target_h))
+                    
+                if self.transform:
+                    from PIL import Image
+                    img = Image.fromarray(img)
+                    img = self.transform(img)
+                else:
+                    img = torch.tensor(img, dtype=torch.float32).permute(2, 0, 1) / 255.0
+                processed_images.append(img)
+                
+            # Stack images along sequence dimension: (seq_len, C, H, W)
+            images_tensor = torch.stack(processed_images, dim=0)
+            
+            return images_tensor, scaled_annotation
+
+        # Single frame mode (seq_len is None or 1)
         else:
             image = cv2.imread(image_frame)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                
+            h_orig, w_orig = image.shape[:2]
+            target_h, target_w = 720, 1280
             
-        h_orig, w_orig = image.shape[:2]
-        target_h, target_w = 720, 1280
-        
-        scale_x = target_w / w_orig
-        scale_y = target_h / h_orig
-        
-        scaled_players = []
-        for player in annotation['playersAnnotations']:
-            x = int(player['x'] * scale_x)
-            y = int(player['y'] * scale_y)
-            w = int(player['w'] * scale_x)
-            h = int(player['h'] * scale_y)
+            scale_x = target_w / w_orig
+            scale_y = target_h / h_orig
             
-            action_str = player['action']
-            # Map action label string to class index
-            action_idx = action_to_idx.get(action_str.lower(), 0) if not str(action_str).isdigit() else int(action_str)
+            scaled_players = []
+            for player in annotation['playersAnnotations']:
+                x = int(player['x'] * scale_x)
+                y = int(player['y'] * scale_y)
+                w = int(player['w'] * scale_x)
+                h = int(player['h'] * scale_y)
+                
+                action_str = player['action']
+                action_idx = action_to_idx.get(action_str.lower(), 0) if not str(action_str).isdigit() else int(action_str)
+                
+                scaled_players.append({
+                    'x': x,
+                    'y': y,
+                    'w': w,
+                    'h': h,
+                    'action': action_str,
+                    'action_idx': action_idx
+                })
+                
+            group_str = annotation['groupLabel']
+            group_idx = group_to_idx.get(group_str.lower(), 0) if not str(group_str).isdigit() else int(group_str)
             
-            scaled_players.append({
-                'x': x,
-                'y': y,
-                'w': w,
-                'h': h,
-                'action': action_str,
-                'action_idx': action_idx
-            })
+            scaled_annotation = {
+                'groupLabel': group_str,
+                'groupLabel_idx': group_idx,
+                'playersAnnotations': scaled_players
+            }
             
-        group_str = annotation['groupLabel']
-        # Map group label string to class index
-        group_idx = group_to_idx.get(group_str.lower(), 0) if not str(group_str).isdigit() else int(group_str)
-        
-        scaled_annotation = {
-            'groupLabel': group_str,
-            'groupLabel_idx': group_idx,
-            'playersAnnotations': scaled_players
-        }
-        
-        if h_orig != target_h or w_orig != target_w:
-            image = cv2.resize(image, (target_w, target_h))
-            
-        if self.transform:
-            from PIL import Image
-            image = Image.fromarray(image)
-            image = self.transform(image)
-            
-        return image, scaled_annotation
+            if h_orig != target_h or w_orig != target_w:
+                image = cv2.resize(image, (target_w, target_h))
+                
+            if self.transform:
+                from PIL import Image
+                image = Image.fromarray(image)
+                image = self.transform(image)
+                
+            return image, scaled_annotation
