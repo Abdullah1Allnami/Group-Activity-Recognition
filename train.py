@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from b1.utils import compute_macro_f1
+from utils import compute_macro_f1
 
 
 def train_epoch(model, dataloader, criterion_group, optimizer, device, scheduler=None):

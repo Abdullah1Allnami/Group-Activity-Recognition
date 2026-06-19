@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from b1.config import GROUP_ACTIVITIES, PLAYER_ACTIONS, group_to_idx, action_to_idx
+from config import GROUP_ACTIVITIES, PLAYER_ACTIONS, group_to_idx, action_to_idx
 
 
 class VolleyBallDataset(Dataset):
