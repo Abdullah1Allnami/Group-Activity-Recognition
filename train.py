@@ -27,7 +27,7 @@ def train_epoch(model, dataloader, criterion_group, optimizer, device, scheduler
         group_labels = torch.tensor(batch_group_labels, dtype=torch.long, device=device)
         
         optimizer.zero_grad()
-        group_outputs, _ = model(images)
+        group_outputs, _ = model(images, annotations)
         
         # Calculate loss
         loss = criterion_group(group_outputs, group_labels)
@@ -83,7 +83,7 @@ def val_epoch(model, dataloader, criterion_group, device):
             batch_group_labels.append(ann['groupLabel_idx'])
             
         group_labels = torch.tensor(batch_group_labels, dtype=torch.long, device=device)
-        group_outputs, _ = model(images)
+        group_outputs, _ = model(images, annotations)
         
         # Calculate loss
         loss = criterion_group(group_outputs, group_labels)
