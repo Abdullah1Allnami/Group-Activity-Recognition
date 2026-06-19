@@ -20,7 +20,7 @@ def baseline_1():
     epochs = 5
     batch_size = 4
     lr = 1e-4
-    data_path = '/kaggle/input/volleyball/volleyball_/videos'
+    data_path = '/kaggle/input/datasets/ahmedmohamed365/volleyball/volleyball_/videos'
     dry_run = False
     
     # Override path if we enforce dry-run or path doesn't exist
@@ -174,10 +174,10 @@ def baseline_1():
 
 
 def baseline_2():
-    epochs = 8
+    epochs = 5
     batch_size = 4
     lr = 1e-4
-    data_path = '/kaggle/input/volleyball/volleyball_/videos'
+    data_path = '/kaggle/input/datasets/ahmedmohamed365/volleyball/volleyball_/videos'
     dry_run = False
     
     # Override path if we enforce dry-run or path doesn't exist
@@ -241,8 +241,8 @@ def baseline_2():
             backbone_params.append(param)
             
     optimizer = torch.optim.AdamW([
-        {'params': backbone_params, 'lr': lr, 'weight_decay': 1e-2},
-        {'params': head_params, 'lr': lr * 10, 'weight_decay': 5e-2}
+        {'params': backbone_params, 'lr': lr, 'weight_decay': 1e-4},
+        {'params': head_params, 'lr': lr * 10, 'weight_decay': 1e-3}
     ])
     
     # Label smoothing tuned to 0.1

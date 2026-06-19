@@ -11,7 +11,7 @@ class GroupActivityRecognitionB2(nn.Module):
     - Feature extraction for each crop (2048 features) is pooled over all people.
     - Pooled features are fed to a softmax classifier to recognize group activities.
     """
-    def __init__(self, num_group_classes=8, num_action_classes=9, embed_dim=2048, dropout=0.5, pooling='max', crop_size=(224, 224)):
+    def __init__(self, num_group_classes=8, num_action_classes=9, embed_dim=2048, dropout=0.3, pooling='max', crop_size=(224, 224)):
         super(GroupActivityRecognitionB2, self).__init__()
         self.num_group_classes = num_group_classes
         self.num_action_classes = num_action_classes
@@ -27,12 +27,6 @@ class GroupActivityRecognitionB2(nn.Module):
         # Replace the final fully connected layer of ResNet-50 with Identity to extract 2048-dim features
         self.resnet.fc = nn.Identity()
         
-        # Freeze early layers: Stem (conv1, bn1) and Stages 1-3 (layer1, layer2, layer3)
-        # to prevent overfitting and speed up training.
-        for name, param in self.resnet.named_parameters():
-            if name.startswith(('conv1', 'bn1', 'layer1', 'layer2', 'layer3')):
-                param.requires_grad = False
-                
         # Classifier for group activities fed by pooled 2048-dim features
         if dropout > 0:
             self.classifier = nn.Sequential(
@@ -88,10 +82,6 @@ class GroupActivityRecognitionB2(nn.Module):
                     mode='bilinear',
                     align_corners=False
                 ).squeeze(0)
-                
-                # Apply random horizontal flip to individual player crops during training
-                if self.training and torch.rand(1).item() > 0.5:
-                    crop_resized = torch.flip(crop_resized, dims=[2])
                 
                 crop_list.append(crop_resized)
                 batch_indices.append(i)
