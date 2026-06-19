@@ -11,7 +11,7 @@ class GroupActivityRecognitionB2(nn.Module):
     - Feature extraction for each crop (2048 features) is pooled over all people.
     - Pooled features are fed to a softmax classifier to recognize group activities.
     """
-    def __init__(self, num_group_classes=8, num_action_classes=9, embed_dim=2048, dropout=0.3, pooling='mixed', crop_size=(224, 224)):
+    def __init__(self, num_group_classes=8, num_action_classes=9, embed_dim=2048, dropout=0.5, pooling='max', crop_size=(224, 224)):
         super(GroupActivityRecognitionB2, self).__init__()
         self.num_group_classes = num_group_classes
         self.num_action_classes = num_action_classes
@@ -27,22 +27,20 @@ class GroupActivityRecognitionB2(nn.Module):
         # Replace the final fully connected layer of ResNet-50 with Identity to extract 2048-dim features
         self.resnet.fc = nn.Identity()
         
-        # Freeze early layers of ResNet-50 (conv1, bn1, layer1, layer2)
+        # Freeze early layers: Stem (conv1, bn1) and Stages 1-3 (layer1, layer2, layer3)
+        # to prevent overfitting and speed up training.
         for name, param in self.resnet.named_parameters():
-            if any(x in name for x in ['conv1', 'bn1', 'layer1', 'layer2']):
+            if name.startswith(('conv1', 'bn1', 'layer1', 'layer2', 'layer3')):
                 param.requires_grad = False
                 
-        # Classifier input dimension based on pooling type
-        feature_dim = 4096 if self.pooling == 'mixed' else 2048
-        
-        # Classifier for group activities fed by pooled features
+        # Classifier for group activities fed by pooled 2048-dim features
         if dropout > 0:
             self.classifier = nn.Sequential(
                 nn.Dropout(p=dropout),
-                nn.Linear(feature_dim, num_group_classes)
+                nn.Linear(2048, num_group_classes)
             )
         else:
-            self.classifier = nn.Linear(feature_dim, num_group_classes)
+            self.classifier = nn.Linear(2048, num_group_classes)
 
     def forward(self, images, annotations=None):
         """
@@ -57,8 +55,6 @@ class GroupActivityRecognitionB2(nn.Module):
             # Standard image forward pass: resize whole image to crop_size and extract features
             resized_images = F.interpolate(images, size=self.crop_size, mode='bilinear', align_corners=False)
             features = self.resnet(resized_images)  # (B, 2048)
-            if self.pooling == 'mixed':
-                features = torch.cat([features, features], dim=1)  # (B, 4096)
             group_output = self.classifier(features)
             action_output = torch.zeros(0, self.num_action_classes, device=device)
             return group_output, action_output
@@ -93,19 +89,9 @@ class GroupActivityRecognitionB2(nn.Module):
                     align_corners=False
                 ).squeeze(0)
                 
-                # Crop-Level Augmentations (Flip & Cutout) during training
-                if self.training:
-                    # Random Horizontal Flip
-                    if torch.rand(1).item() < 0.5:
-                        crop_resized = torch.flip(crop_resized, dims=[2])
-                    # Cutout (Random Erasing)
-                    if torch.rand(1).item() < 0.2:
-                        ch, cw = self.crop_size
-                        erase_h = torch.randint(20, 50, (1,)).item()
-                        erase_w = torch.randint(20, 50, (1,)).item()
-                        y_start = torch.randint(0, ch - erase_h, (1,)).item()
-                        x_start = torch.randint(0, cw - erase_w, (1,)).item()
-                        crop_resized[:, y_start:y_start+erase_h, x_start:x_start+erase_w] = 0.0
+                # Apply random horizontal flip to individual player crops during training
+                if self.training and torch.rand(1).item() > 0.5:
+                    crop_resized = torch.flip(crop_resized, dims=[2])
                 
                 crop_list.append(crop_resized)
                 batch_indices.append(i)
@@ -114,17 +100,12 @@ class GroupActivityRecognitionB2(nn.Module):
             # If no crops were extracted, fall back to whole image features as baseline
             resized_images = F.interpolate(images, size=self.crop_size, mode='bilinear', align_corners=False)
             pooled_features = self.resnet(resized_images)  # (B, 2048)
-            if self.pooling == 'mixed':
-                pooled_features = torch.cat([pooled_features, pooled_features], dim=1)  # (B, 4096)
         else:
             # Stack all crops into a single tensor for a single efficient backbone pass
             crops_tensor = torch.stack(crop_list, dim=0)  # (M, C, 224, 224)
             
             # Extract 2048 features for each crop
             crop_features = self.resnet(crops_tensor)  # (M, 2048)
-            
-            # Feature-Level L2 Normalization
-            crop_features = F.normalize(crop_features, p=2, dim=1)
             
             # Pool features over all people for each frame in the batch
             pooled_features_list = []
@@ -136,21 +117,14 @@ class GroupActivityRecognitionB2(nn.Module):
                     img_crop_features = crop_features[mask]  # (N_i, 2048)
                     if self.pooling == 'max':
                         pooled, _ = torch.max(img_crop_features, dim=0)  # (2048,)
-                    elif self.pooling in ('mean', 'avg'):
-                        pooled = torch.mean(img_crop_features, dim=0)  # (2048,)
-                    elif self.pooling == 'mixed':
-                        max_pooled, _ = torch.max(img_crop_features, dim=0)
-                        avg_pooled = torch.mean(img_crop_features, dim=0)
-                        pooled = torch.cat([max_pooled, avg_pooled], dim=0)  # (4096,)
                     else:
-                        pooled, _ = torch.max(img_crop_features, dim=0)
+                        pooled = torch.mean(img_crop_features, dim=0)  # (2048,)
                 else:
                     # Fallback if no crops detected for this specific frame
-                    feat_dim = 4096 if self.pooling == 'mixed' else 2048
-                    pooled = torch.zeros(feat_dim, device=device)
+                    pooled = torch.zeros(2048, device=device)
                 pooled_features_list.append(pooled)
                 
-            pooled_features = torch.stack(pooled_features_list, dim=0)  # (B, feature_dim)
+            pooled_features = torch.stack(pooled_features_list, dim=0)  # (B, 2048)
             
         group_output = self.classifier(pooled_features)
         

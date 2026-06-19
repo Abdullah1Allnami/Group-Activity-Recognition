@@ -174,7 +174,7 @@ def baseline_1():
 
 
 def baseline_2():
-    epochs = 5
+    epochs = 8
     batch_size = 4
     lr = 1e-4
     data_path = '/kaggle/input/volleyball/volleyball_/videos'
@@ -225,43 +225,31 @@ def baseline_2():
         num_action_classes=len(PLAYER_ACTIONS),
         embed_dim=2048,
         dropout=0.3,
-        pooling='mixed'
+        pooling='max'
     )
     model = model.to(device)
     
-    # Layer-wise Learning Rate Decay and Parameter Grouping
-    layer3_params = []
-    layer4_params = []
+    # Differential learning rates: smaller for backbone, larger for fresh head
+    backbone_params = []
     head_params = []
     for name, param in model.named_parameters():
         if not param.requires_grad:
             continue
         if 'classifier' in name:
             head_params.append(param)
-        elif 'layer4' in name:
-            layer4_params.append(param)
         else:
-            layer3_params.append(param)
+            backbone_params.append(param)
             
     optimizer = torch.optim.AdamW([
-        {'params': layer3_params, 'lr': lr * 0.5, 'weight_decay': 1e-4},
-        {'params': layer4_params, 'lr': lr, 'weight_decay': 1e-4},
-        {'params': head_params, 'lr': lr * 10, 'weight_decay': 1e-3}
+        {'params': backbone_params, 'lr': lr, 'weight_decay': 1e-2},
+        {'params': head_params, 'lr': lr * 10, 'weight_decay': 5e-2}
     ])
     
-    # Label smoothing tuned to 0.15
-    criterion_group = nn.CrossEntropyLoss(label_smoothing=0.15)
+    # Label smoothing tuned to 0.1
+    criterion_group = nn.CrossEntropyLoss(label_smoothing=0.1)
     
-    # OneCycleLR Scheduler (steps per batch, warm up for 20% steps)
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(
-        optimizer,
-        max_lr=[group['lr'] for group in optimizer.param_groups],
-        steps_per_epoch=len(train_loader),
-        epochs=epochs,
-        pct_start=0.2,
-        div_factor=10.0,
-        final_div_factor=100.0
-    )
+    # Cosine Annealing learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
     # Checkpoint saving paths
     os.makedirs('b2/checkpoints', exist_ok=True)
@@ -302,11 +290,13 @@ def baseline_2():
         
         # Display learning rates
         current_lrs = [group['lr'] for group in optimizer.param_groups]
-        print(f"Learning Rates - Layer3: {current_lrs[0]:.2e} | Layer4: {current_lrs[1]:.2e} | Head: {current_lrs[2]:.2e}")
+        print(f"Learning Rates - Backbone: {current_lrs[0]:.2e} | Head: {current_lrs[1]:.2e}")
         
-        # Pass scheduler to train_epoch for batch-level scheduling
-        train_metrics = train_epoch(model, train_loader, criterion_group, optimizer, device, scheduler=scheduler)
+        train_metrics = train_epoch(model, train_loader, criterion_group, optimizer, device)
         val_metrics = val_epoch(model, val_loader, criterion_group, device)
+        
+        # Step the scheduler
+        scheduler.step()
         
         # Append history
         history['train_loss'].append(train_metrics['loss'])
