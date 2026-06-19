@@ -8,7 +8,7 @@ from config import GROUP_ACTIVITIES, PLAYER_ACTIONS, group_to_idx, action_to_idx
 
 
 class VolleyBallDataset(Dataset):
-    def __init__(self, split='train', transform=None, data_path='/kaggle/input/datasets/ahmedmohamed365/volleyball/volleyball_/videos'):
+    def __init__(self, split='train', transform=None, data_path='./volleyball/volleyball_/videos'):
         self.data_path = data_path
         self.split = split
         self.transform = transform

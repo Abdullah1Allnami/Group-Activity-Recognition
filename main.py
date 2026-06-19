@@ -20,7 +20,7 @@ def baseline_1():
     epochs = 5
     batch_size = 4
     lr = 1e-4
-    data_path = '/kaggle/input/datasets/ahmedmohamed365/volleyball/volleyball_/videos'
+    data_path = './volleyball/volleyball_/videos'
     dry_run = False
     
     # Override path if we enforce dry-run or path doesn't exist
@@ -177,7 +177,7 @@ def baseline_2():
     epochs = 5
     batch_size = 4
     lr = 1e-4
-    data_path = '/kaggle/input/datasets/ahmedmohamed365/volleyball/volleyball_/videos'
+    data_path = './volleyball/volleyball_/videos'
     dry_run = False
     
     # Override path if we enforce dry-run or path doesn't exist
