@@ -143,25 +143,25 @@ For further information about dataset, you can check out the paper author's repo
 - **B1: Image Classification:**  
    A straightforward image classifier based on ResNet-50, fine-tuned to classify group activities using a single frame from a video clip.
 
-- **B3: Fine-tuned Person Classification:**  
+- **B2: Fine-tuned Person Classification:**  
    The ResNet-50 CNN model is deployed on each person. Feature extraction for each crop 2048 features are pooled over all people and then fed to a softmax classifier to recognize group activities in a single frame.
 
-- **B4: Temporal Model with Image Features:**  
+- **B3: Temporal Model with Image Features:**  
    A temporal model that uses image features per clip. Each clip consists of 9 frames, and an LSTM is trained on sequences of 9 steps for each clip.
 
-- **B5: Temporal Model with Person Features:**  
+- **B4: Temporal Model with Person Features:**  
    A temporal extension of the previous baseline (B3) temporal on crops (LSTM on player level), where person-specific features pooled over all individuals to recognize group activities.
 
-- **B6: Two-stage Model without LSTM 1:**  
+- **B5: Two-stage Model without LSTM 1:**  
   Individual features pooled over all people are fed into an LSTM model to capture group dynamics.
 
-- **B7: Two-stage Model without LSTM 2:**  
+- **B6: Two-stage Model without LSTM 2:**  
    The full model (V1) trains an LSTM on crop-level data (LSTM on a player level). Clips are extracted: sequences of 9 steps per player for each frame. A max-pooling operation is applied to the players, and LSTM 2 is trained on the frame level.
 
-- **B8: Two-stage Hierarchical Model:**  
+- **B7: Two-stage Hierarchical Model:**  
    The full model (V2) trains an LSTM on crop-level data (LSTM on a player level). Clips are extracted as sequences of 9 steps per player for each frame. A max-pooling operation is applied to each player's team in a dependent way. Features from both teams are concatenated along the feature dimension, and the result is fed to LSTM 2 at the frame level.
 
-- **B9: Unified Hierarchical Model:**  
+- **B8: Unified Hierarchical Model:**  
    In earlier baselines, person-level and group-level activity losses were addressed independently, leading to a two-stage model. Baseline 9 integrates these processes into a unified, end-to-end training pipeline. This approach enables simultaneous optimization of both person-level and group-level activity classification through a shared gradient flow. Additionally, Baseline 9 employs `ResNet34` instead of `ResNet50` and `GUR` instead of `LSTM`, **reducing model complexity and mitigating the risk of overfitting**.
 
 ---
