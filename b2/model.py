@@ -44,11 +44,8 @@ class GroupActivityRecognitionB2(nn.Module):
         batch_size, C, H, W = images.shape
         device = images.device
         
-        # Fallback if no annotations are provided
         if annotations is None:
-            # Standard image forward pass: resize whole image to crop_size and extract features
-            resized_images = F.interpolate(images, size=self.crop_size, mode='bilinear', align_corners=False)
-            features = self.resnet(resized_images)  # (B, 2048)
+            features = self.resnet(images)
             group_output = self.classifier(features)
             action_output = torch.zeros(0, self.num_action_classes, device=device)
             return group_output, action_output
@@ -59,7 +56,7 @@ class GroupActivityRecognitionB2(nn.Module):
         # Extract crops for each player in each image in the batch
         for i in range(batch_size):
             player_anns = annotations[i].get('playersAnnotations', [])
-            img = images[i]  # (C, H, W)
+            img = images[i]
             
             for player in player_anns:
                 x = player['x']
@@ -67,7 +64,6 @@ class GroupActivityRecognitionB2(nn.Module):
                 w = player['w']
                 h = player['h']
                 
-                # Clamp bounding box coordinates to image boundaries
                 x1 = max(0, min(x, W - 1))
                 y1 = max(0, min(y, H - 1))
                 x2 = max(x1 + 1, min(x + w, W))
@@ -75,7 +71,6 @@ class GroupActivityRecognitionB2(nn.Module):
                 
                 crop = img[:, y1:y2, x1:x2]
                 
-                # Resize crop to (224, 224)
                 crop_resized = F.interpolate(
                     crop.unsqueeze(0),
                     size=self.crop_size,
@@ -87,34 +82,27 @@ class GroupActivityRecognitionB2(nn.Module):
                 batch_indices.append(i)
                 
         if len(crop_list) == 0:
-            # If no crops were extracted, fall back to whole image features as baseline
-            resized_images = F.interpolate(images, size=self.crop_size, mode='bilinear', align_corners=False)
-            pooled_features = self.resnet(resized_images)  # (B, 2048)
+            pooled_features = self.resnet(images)
         else:
-            # Stack all crops into a single tensor for a single efficient backbone pass
-            crops_tensor = torch.stack(crop_list, dim=0)  # (M, C, 224, 224)
+            crops_tensor = torch.stack(crop_list, dim=0)
+            crop_features = self.resnet(crops_tensor)
             
-            # Extract 2048 features for each crop
-            crop_features = self.resnet(crops_tensor)  # (M, 2048)
-            
-            # Pool features over all people for each frame in the batch
             pooled_features_list = []
             batch_indices = torch.tensor(batch_indices, device=device)
             
             for i in range(batch_size):
                 mask = (batch_indices == i)
                 if mask.any():
-                    img_crop_features = crop_features[mask]  # (N_i, 2048)
+                    img_crop_features = crop_features[mask]
                     if self.pooling == 'max':
-                        pooled, _ = torch.max(img_crop_features, dim=0)  # (2048,)
+                        pooled, _ = torch.max(img_crop_features, dim=0)
                     else:
-                        pooled = torch.mean(img_crop_features, dim=0)  # (2048,)
+                        pooled = torch.mean(img_crop_features, dim=0)
                 else:
-                    # Fallback if no crops detected for this specific frame
                     pooled = torch.zeros(2048, device=device)
                 pooled_features_list.append(pooled)
                 
-            pooled_features = torch.stack(pooled_features_list, dim=0)  # (B, 2048)
+            pooled_features = torch.stack(pooled_features_list, dim=0)
             
         group_output = self.classifier(pooled_features)
         

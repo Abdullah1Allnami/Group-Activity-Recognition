@@ -224,7 +224,7 @@ def baseline_2():
         num_action_classes=len(PLAYER_ACTIONS),
         embed_dim=2048,
         dropout=0.3,
-        pooling='max'
+        pooling='mean'
     )
     model = model.to(device)
     
@@ -347,7 +347,7 @@ def baseline_3():
     print(f"Running Baseline 3 on device: {device}")
 
     train_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((180, 320)),
         transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),
         transforms.RandomGrayscale(p=0.1),
         transforms.ToTensor(),
@@ -355,7 +355,7 @@ def baseline_3():
     ])
 
     val_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((180, 320)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
