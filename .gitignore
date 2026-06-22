@@ -13,6 +13,7 @@ __pycache__/
 
 # .pt
 *.pt
+*.DS_Store
 
 
 # Distribution / packaging
